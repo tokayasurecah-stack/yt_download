@@ -4,3 +4,8 @@ __pycache__/
 ffpath.txt
 fix_path.ps1
 fix_git_path.ps1
+push.bat
+build/
+dist/
+*.spec
+convertico-yt*

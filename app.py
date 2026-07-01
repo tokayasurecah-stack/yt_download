@@ -1,7 +1,10 @@
+import io
 import os
 import queue
 import threading
 import tkinter as tk
+import urllib.request
+import webbrowser
 from tkinter import filedialog, messagebox, ttk
 
 try:
@@ -19,6 +22,12 @@ APP_VERSION = "v2.0.0"
 DEV_NAME = "Tony Bbosa"
 DEV_ROLE = "Full-Stack Developer"
 DEV_CONTACT = "github.com/tonybbosa"
+
+# ── Ad config — swap these two values to change the ad ───────────────────────
+# AD_IMAGE_URL : direct link to your banner image (728x90 or any size)
+# AD_CLICK_URL : URL that opens when the user clicks the banner
+AD_IMAGE_URL = ""  # e.g. "https://yourcdn.com/banner.png"
+AD_CLICK_URL = ""  # e.g. "https://your-sponsor.com"
 
 # ── Colour palette ────────────────────────────────────────────────────────────
 BG = "#0d1117"  # root background
@@ -53,7 +62,7 @@ class YTDownloaderApp:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title(APP_NAME)
-        self.root.geometry("620x590")
+        self.root.geometry("620x660")
         self.root.resizable(False, False)
         self.root.configure(bg=BG)
 
@@ -81,6 +90,7 @@ class YTDownloaderApp:
         self._setup_styles()
         self._build_header()
         self._build_body()
+        self._build_ad_banner()
         self._build_footer()
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -338,6 +348,80 @@ class YTDownloaderApp:
     # ══════════════════════════════════════════════════════════════════════════
     #  Footer
     # ══════════════════════════════════════════════════════════════════════════
+    #  Ad Banner
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _build_ad_banner(self):
+        """Async image banner ad. Set AD_IMAGE_URL + AD_CLICK_URL at the top."""
+        # Thin top border
+        tk.Frame(self.root, bg=BORDER, height=1).pack(fill="x")
+
+        self._ad_frame = tk.Frame(self.root, bg=SURF2, height=80, cursor="hand2")
+        self._ad_frame.pack(fill="x")
+        self._ad_frame.pack_propagate(False)
+
+        # "AD" badge — top-right corner
+        tk.Label(
+            self._ad_frame,
+            text="AD",
+            font=("Segoe UI", 7, "bold"),
+            bg=MUTED,
+            fg=SUBTEXT,
+            padx=4,
+            pady=1,
+        ).place(relx=1.0, x=-6, y=4, anchor="ne")
+
+        # Placeholder shown while the image loads (or if no URL is set)
+        self._ad_label = tk.Label(
+            self._ad_frame,
+            text="📊  Advertise here  —  contact: tonybbosa@gmail.com",
+            font=("Segoe UI", 9),
+            bg=SURF2,
+            fg=MUTED,
+            cursor="hand2",
+        )
+        self._ad_label.place(relx=0.5, rely=0.5, anchor="center")
+        self._ad_label.bind("<Button-1>", self._ad_clicked)
+        self._ad_frame.bind("<Button-1>", self._ad_clicked)
+
+        # Load real banner image in background if URL is provided
+        if AD_IMAGE_URL:
+            threading.Thread(target=self._fetch_ad_image, daemon=True).start()
+
+    def _fetch_ad_image(self):
+        """Download the banner image and display it (runs in background thread)."""
+        try:
+            from PIL import Image, ImageTk
+
+            req = urllib.request.Request(
+                AD_IMAGE_URL,
+                headers={"User-Agent": "YTDownloader-AdClient/1.0"},
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = resp.read()
+
+            img = Image.open(io.BytesIO(data)).convert("RGBA")
+            # Scale to fit banner width, keep aspect ratio
+            bw = 620
+            ratio = bw / img.width
+            bh = min(int(img.height * ratio), 80)
+            img = img.resize((bw, bh), Image.LANCZOS)
+
+            photo = ImageTk.PhotoImage(img)
+            self.root.after(0, self._show_ad_image, photo)
+        except Exception:
+            pass  # Network issue / bad URL — placeholder stays
+
+    def _show_ad_image(self, photo):
+        self._ad_photo_ref = photo  # prevent garbage collection
+        self._ad_label.config(image=photo, text="", bg=SURF2)
+        self._ad_label.place(relx=0, rely=0, anchor="nw", width=620, height=80)
+
+    def _ad_clicked(self, _event=None):
+        if AD_CLICK_URL:
+            webbrowser.open(AD_CLICK_URL)
+
+    # ══════════════════════════════════════════════════════════════════════════
 
     def _build_footer(self):
         foot = tk.Frame(self.root, bg=SURF2, height=44)
@@ -556,6 +640,22 @@ class YTDownloaderApp:
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    import sys
+
     root = tk.Tk()
+
+    # Set window icon right after Tk() — before mainloop or any widget is built
+    try:
+        base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+        png_path = os.path.join(base, "icon.png")
+        ico_path = os.path.join(base, "convertico-yt (1).ico")
+        if os.path.exists(png_path):
+            _icon = tk.PhotoImage(file=png_path)
+            root.iconphoto(True, _icon)  # most reliable on Windows
+        elif os.path.exists(ico_path):
+            root.iconbitmap(ico_path)
+    except Exception:
+        pass
+
     YTDownloaderApp(root)
     root.mainloop()
