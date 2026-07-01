@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+ffpath.txt
+fix_path.ps1
+fix_git_path.ps1
