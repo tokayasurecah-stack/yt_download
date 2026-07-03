@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   push:
     branches: [main]
-  workflow_dispatch:  # allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build-apk:
@@ -13,25 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Build APK with Buildozer (Docker)
+        uses: buildozer/buildozer-action@master
         with:
-          python-version: "3.11"
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y git zip unzip openjdk-17-jdk \
-            autoconf libtool pkg-config zlib1g-dev \
-            libncurses5-dev libffi-dev libssl-dev build-essential \
-            ant gradle
-
-      - name: Install Buildozer & dependencies
-        run: |
-          pip install --upgrade cython==0.29.33 buildozer
-
-      - name: Build APK with Buildozer
-        run: buildozer android debug
+          buildozer_version: "1.6.1"
+          command: buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
