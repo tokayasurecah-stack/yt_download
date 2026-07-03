@@ -7,5 +7,5 @@ fix_git_path.ps1
 push.bat
 build/
 dist/
-*.spec
+# *.spec  -- removed: buildozer.spec must be tracked
 convertico-yt*
